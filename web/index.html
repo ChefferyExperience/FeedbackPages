@@ -34,12 +34,42 @@
 
   <title>feedback_pages</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: var(--app-height, 100vh);
+      overflow: hidden;
+    }
+
+    flutter-view,
+    #flt-glass-pane,
+    flt-glass-pane,
+    flt-scene-host,
+    [flt-renderer] {
+      height: var(--app-height, 100vh) !important;
+    }
+  </style>
 </head>
 
 <body>
   <script>
     (() => {
       const viewport = window.visualViewport;
+      const root = document.documentElement;
+      const setAppHeight = () => {
+        const height = viewport ? viewport.height : window.innerHeight;
+        root.style.setProperty('--app-height', `${height}px`);
+      };
+
+      setAppHeight();
+      window.addEventListener('resize', setAppHeight);
+      window.addEventListener('orientationchange', () => {
+        window.setTimeout(setAppHeight, 60);
+      });
+
       if (!viewport) return;
 
       let baselineHeight = viewport.height;
@@ -123,6 +153,8 @@
         const keyboardLikelyOpen = height < baselineHeight - 80;
         const keyboardLikelyClosed = height >= baselineHeight - 20;
 
+        setAppHeight();
+
         if (keyboardLikelyOpen) {
           keyboardOpen = true;
         }
@@ -150,6 +182,7 @@
       window.addEventListener('orientationchange', () => {
         baselineHeight = viewport.height;
         keyboardOpen = false;
+        setAppHeight();
       });
     })();
   </script>
