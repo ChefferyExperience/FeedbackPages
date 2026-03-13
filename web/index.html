@@ -44,6 +44,15 @@
 
       let baselineHeight = viewport.height;
       let keyboardOpen = false;
+      let pendingBlur = null;
+
+      const getDeepActiveElement = (root = document) => {
+        let active = root.activeElement;
+        while (active && active.shadowRoot && active.shadowRoot.activeElement) {
+          active = active.shadowRoot.activeElement;
+        }
+        return active;
+      };
 
       const isEditable = (element) => {
         if (!element) return false;
@@ -51,12 +60,39 @@
         return (
           tag === 'INPUT' ||
           tag === 'TEXTAREA' ||
-          element.isContentEditable
+          element.isContentEditable ||
+          element.getAttribute('role') === 'textbox'
         );
       };
 
+      const blurActiveEditor = () => {
+        const active = getDeepActiveElement();
+        if (active && typeof active.blur === 'function') {
+          active.blur();
+        }
+
+        const fallbackEditors = document.querySelectorAll(
+          'input, textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
+        );
+        fallbackEditors.forEach((element) => {
+          if (typeof element.blur === 'function') {
+            element.blur();
+          }
+        });
+      };
+
+      const scheduleBlur = () => {
+        if (pendingBlur !== null) {
+          window.clearTimeout(pendingBlur);
+        }
+        pendingBlur = window.setTimeout(() => {
+          blurActiveEditor();
+          pendingBlur = null;
+        }, 40);
+      };
+
       const handleViewportChange = () => {
-        const active = document.activeElement;
+        const active = getDeepActiveElement();
         const height = viewport.height;
 
         if (!isEditable(active)) {
@@ -71,7 +107,7 @@
         }
 
         if (keyboardOpen && height >= baselineHeight - 20) {
-          active.blur();
+          scheduleBlur();
           keyboardOpen = false;
           baselineHeight = height;
           return;
