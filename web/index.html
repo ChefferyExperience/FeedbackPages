@@ -71,13 +71,39 @@
           active.blur();
         }
 
+        const host = document.querySelector('flt-text-editing-host');
         const fallbackEditors = document.querySelectorAll(
-          'input, textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
+          'input, textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"], .flt-text-editing, flt-text-editing-host input, flt-text-editing-host textarea'
         );
+        const hostEditors = host
+          ? host.querySelectorAll(
+            'input, textarea, [contenteditable=""], [contenteditable="true"], [role="textbox"], .flt-text-editing'
+          )
+          : [];
+
+        if (host && typeof host.blur === 'function') {
+          host.blur();
+        }
+
         fallbackEditors.forEach((element) => {
           if (typeof element.blur === 'function') {
             element.blur();
           }
+        });
+
+        hostEditors.forEach((element) => {
+          if (typeof element.blur === 'function') {
+            element.blur();
+          }
+        });
+
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
+
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new Event('resize'));
+          window.scrollTo(window.scrollX, 0);
         });
       };
 
@@ -92,21 +118,25 @@
       };
 
       const handleViewportChange = () => {
-        const active = getDeepActiveElement();
         const height = viewport.height;
+        const active = getDeepActiveElement();
+        const keyboardLikelyOpen = height < baselineHeight - 80;
+        const keyboardLikelyClosed = height >= baselineHeight - 20;
 
-        if (!isEditable(active)) {
-          baselineHeight = Math.max(baselineHeight, height);
-          keyboardOpen = false;
-          return;
-        }
-
-        if (height < baselineHeight - 80) {
+        if (keyboardLikelyOpen) {
           keyboardOpen = true;
+        }
+
+        if (!isEditable(active) && !keyboardOpen) {
+          baselineHeight = Math.max(baselineHeight, height);
           return;
         }
 
-        if (keyboardOpen && height >= baselineHeight - 20) {
+        if (keyboardLikelyOpen) {
+          return;
+        }
+
+        if (keyboardOpen && keyboardLikelyClosed) {
           scheduleBlur();
           keyboardOpen = false;
           baselineHeight = height;
