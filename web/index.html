@@ -37,6 +37,56 @@
 </head>
 
 <body>
+  <script>
+    (() => {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+
+      let baselineHeight = viewport.height;
+      let keyboardOpen = false;
+
+      const isEditable = (element) => {
+        if (!element) return false;
+        const tag = element.tagName;
+        return (
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          element.isContentEditable
+        );
+      };
+
+      const handleViewportChange = () => {
+        const active = document.activeElement;
+        const height = viewport.height;
+
+        if (!isEditable(active)) {
+          baselineHeight = Math.max(baselineHeight, height);
+          keyboardOpen = false;
+          return;
+        }
+
+        if (height < baselineHeight - 80) {
+          keyboardOpen = true;
+          return;
+        }
+
+        if (keyboardOpen && height >= baselineHeight - 20) {
+          active.blur();
+          keyboardOpen = false;
+          baselineHeight = height;
+          return;
+        }
+
+        baselineHeight = Math.max(baselineHeight, height);
+      };
+
+      viewport.addEventListener('resize', handleViewportChange);
+      window.addEventListener('orientationchange', () => {
+        baselineHeight = viewport.height;
+        keyboardOpen = false;
+      });
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 
